@@ -39,6 +39,6 @@ build/
 *.temp
 .cache/
 
-# Lock files (optional - uncomment if you don't want to commit these)
-# package-lock.json
-# yarn.lock
+# Lock files - not needed when using "latest" versions
+package-lock.json
+yarn.lock

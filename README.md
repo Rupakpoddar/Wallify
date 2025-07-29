@@ -62,8 +62,15 @@ chmod +x install.sh
 ```
 wallify/
 ├── server/          # Node.js backend server
+│   ├── index.js     # Main server file
+│   └── package.json # Dependencies configuration
 ├── client/          # Display client (HTML/JS)
+│   ├── display.html
+│   └── display.js
 ├── admin/           # Admin interface
+│   ├── index.html
+│   ├── admin.js
+│   └── admin.css
 ├── install.sh       # Installation script
 └── README.md        # This file
 ```
