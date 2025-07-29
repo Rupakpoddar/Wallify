@@ -160,16 +160,58 @@ cp -r "$SOURCE_DIR/client" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed 
 cp -r "$SOURCE_DIR/admin" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy admin files"; exit 1; }
 print_done
 
+# Verify critical files
+if [ ! -f "$INSTALL_DIR/server/package.json" ]; then
+    print_error "package.json was not copied correctly"
+    print_info "Source directory contents:"
+    ls -la "$SOURCE_DIR/server/"
+    print_info "Destination directory contents:"
+    ls -la "$INSTALL_DIR/server/"
+    exit 1
+fi
+
 # Create uploads directory
 mkdir -p "$INSTALL_DIR/server/uploads"
 touch "$INSTALL_DIR/server/uploads/.gitkeep"
 
 # Install Node.js dependencies
 print_step "Installing Dependencies"
+
+# Test npm is working
+print_progress "Verifying npm installation"
+if ! npm --version &>/dev/null; then
+    print_error "npm is not working correctly"
+    print_info "Trying to reinstall Node.js..."
+    sudo apt-get install -y --reinstall nodejs npm
+    exit 1
+fi
+print_done
+
 cd "$INSTALL_DIR/server"
 
+# Check if package.json exists
+if [ ! -f "package.json" ]; then
+    print_error "package.json not found in $INSTALL_DIR/server"
+    print_info "Directory contents:"
+    ls -la
+    exit 1
+fi
+
 print_progress "Installing npm packages"
-npm install --omit=dev --silent 2>/dev/null && print_done || { print_error "Failed to install npm packages"; exit 1; }
+# Run npm install with better error handling
+if npm install --production > /tmp/npm-install.log 2>&1; then
+    print_done
+    print_success "Installed packages: $(npm list --depth=0 2>/dev/null | grep -c '^├')"
+else
+    print_error "Failed to install npm packages"
+    echo
+    print_info "Error details:"
+    cat /tmp/npm-install.log
+    echo
+    print_info "Trying verbose installation..."
+    npm install --production --verbose
+    exit 1
+fi
 
 # Create systemd service
 print_step "Setting Up System Service"

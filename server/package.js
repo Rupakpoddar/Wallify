@@ -7,9 +7,9 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "latest",
-    "multer": "latest",
-    "cors": "latest",
-    "uuid": "latest"
+    "express": "*",
+    "multer": "*",
+    "cors": "*",
+    "uuid": "*"
   }
 }
