@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallify Admin</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Wallify Admin Panel</h1>
+            <div class="header-actions">
+                <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                <a href="/display" target="_blank" class="btn btn-primary">Open Display</a>
+            </div>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="assets">Assets</button>
+            <button class="tab-btn" data-tab="schedule">Schedule</button>
+        </div>
+        
+        <div class="tab-content">
+            <div id="assets-tab" class="tab-pane active">
+                <div class="upload-section">
+                    <h2>Add New Asset</h2>
+                    <div class="upload-options">
+                        <div class="upload-option">
+                            <h3>Upload File</h3>
+                            <input type="file" id="file-input" accept="image/*,video/*" multiple>
+                            <label>Duration (seconds): <input type="number" id="file-duration" value="10" min="1"></label>
+                            <button id="upload-btn" class="btn btn-primary">Upload</button>
+                        </div>
+                        
+                        <div class="upload-option">
+                            <h3>Add URL</h3>
+                            <input type="text" id="url-input" placeholder="https://example.com">
+                            <label>Name: <input type="text" id="url-name" placeholder="Website Name"></label>
+                            <label>Duration (seconds): <input type="number" id="url-duration" value="30" min="1"></label>
+                            <button id="add-url-btn" class="btn btn-primary">Add URL</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="assets-list">
+                    <h2>Current Assets</h2>
+                    <div id="assets-container"></div>
+                </div>
+            </div>
+            
+            <div id="schedule-tab" class="tab-pane">
+                <div class="schedule-form">
+                    <h2>Create Schedule</h2>
+                    <div class="form-group">
+                        <label>Asset:</label>
+                        <select id="schedule-asset"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Time:</label>
+                        <input type="time" id="schedule-start" value="09:00">
+                    </div>
+                    <div class="form-group">
+                        <label>End Time:</label>
+                        <input type="time" id="schedule-end" value="18:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Days:</label>
+                        <div class="days-selector">
+                            <label><input type="checkbox" value="mon" checked> Mon</label>
+                            <label><input type="checkbox" value="tue" checked> Tue</label>
+                            <label><input type="checkbox" value="wed" checked> Wed</label>
+                            <label><input type="checkbox" value="thu" checked> Thu</label>
+                            <label><input type="checkbox" value="fri" checked> Fri</label>
+                            <label><input type="checkbox" value="sat"> Sat</label>
+                            <label><input type="checkbox" value="sun"> Sun</label>
+                        </div>
+                    </div>
+                    <button id="add-schedule-btn" class="btn btn-primary">Add Schedule</button>
+                </div>
+                
+                <div class="schedule-list">
+                    <h2>Active Schedules</h2>
+                    <div id="schedule-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script src="admin.js"></script>
+</body>
+</html>
