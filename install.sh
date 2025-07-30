@@ -105,7 +105,7 @@ fi
 
 # Determine installation source
 print_step "Preparing Installation Files"
-if [ -d "server" ] && [ -d "client" ] && [ -d "admin" ]; then
+if [ -d "server" ] && [ -d "display" ] && [ -d "dashboard" ]; then
     print_info "Installing from local directory"
     INSTALL_FROM_LOCAL=true
     SOURCE_DIR=$(pwd)
@@ -130,8 +130,8 @@ mkdir -p "$INSTALL_DIR" && print_done || { print_error "Failed"; exit 1; }
 # Copy files
 print_progress "Copying application files"
 cp -r "$SOURCE_DIR/server" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy server files"; exit 1; }
-cp -r "$SOURCE_DIR/client" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy client files"; exit 1; }
-cp -r "$SOURCE_DIR/admin" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy admin files"; exit 1; }
+cp -r "$SOURCE_DIR/display" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy display files"; exit 1; }
+cp -r "$SOURCE_DIR/dashboard" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy dashboard files"; exit 1; }
 print_done
 
 # Create uploads directory
@@ -174,6 +174,12 @@ sudo systemctl enable wallify.service &>/dev/null && print_done || { print_error
 
 print_progress "Starting service"
 sudo systemctl start wallify.service && print_done || { print_error "Failed"; exit 1; }
+
+# Configure sudo permissions for reboot
+print_step "Configuring System Permissions"
+print_progress "Setting up reboot permissions"
+echo "$USER ALL=(ALL) NOPASSWD: /sbin/reboot" | sudo tee /etc/sudoers.d/wallify-reboot > /dev/null
+sudo chmod 0440 /etc/sudoers.d/wallify-reboot && print_done || print_info "Manual configuration may be required"
 
 # Configure auto-start for display
 print_step "Configuring Display Auto-Start"
@@ -265,9 +271,9 @@ echo "  Location: $INSTALL_DIR"
 echo -e "  Service: $SERVER_STATUS"
 echo
 echo "Access URLs:"
-echo "  Admin Panel:"
-echo "    http://$IP_ADDR:3000/admin"
-echo "    http://localhost:3000/admin"
+echo "  Dashboard:"
+echo "    http://$IP_ADDR:3000/dashboard"
+echo "    http://localhost:3000/dashboard"
 echo
 echo "  Display:"
 echo "    http://$IP_ADDR:3000/display"

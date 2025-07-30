@@ -36,6 +36,7 @@ h1 {
 .header-actions {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .btn {
@@ -74,34 +75,6 @@ h1 {
 
 .btn-danger:hover {
     background: #c0392b;
-}
-
-.tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.tab-btn {
-    padding: 10px 20px;
-    border: none;
-    background: white;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.3s;
-}
-
-.tab-btn.active {
-    background: #3498db;
-    color: white;
-}
-
-.tab-pane {
-    display: none;
-}
-
-.tab-pane.active {
-    display: block;
 }
 
 .upload-section {
@@ -153,20 +126,20 @@ h2 {
     margin-bottom: 10px;
 }
 
-.assets-list, .schedule-list {
+.assets-list {
     background: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-#assets-container, #schedule-container {
+#assets-container {
     display: grid;
     gap: 15px;
     margin-top: 20px;
 }
 
-.asset-item, .schedule-item {
+.asset-item {
     display: flex;
     align-items: center;
     padding: 15px;
@@ -175,7 +148,7 @@ h2 {
     transition: all 0.3s;
 }
 
-.asset-item:hover, .schedule-item:hover {
+.asset-item:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -222,45 +195,6 @@ button:disabled {
     gap: 10px;
 }
 
-.schedule-form {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.days-selector {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.days-selector label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: normal;
-}
-
 .toast {
     position: fixed;
     bottom: 20px;
@@ -288,18 +222,26 @@ button:disabled {
     background: #27ae60;
 }
 
+.toast.info {
+    background: #2196F3;
+}
+
 @media (max-width: 768px) {
     .upload-options {
         grid-template-columns: 1fr;
     }
     
     .header-actions {
-        flex-direction: column;
         width: 100%;
+        justify-content: center;
     }
     
     header {
-        flex-direction: column;
         text-align: center;
+    }
+    
+    .btn {
+        font-size: 12px;
+        padding: 8px 16px;
     }
 }

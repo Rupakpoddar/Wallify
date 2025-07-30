@@ -4,12 +4,13 @@ Open source digital signage system for Raspberry Pi. Display images, videos, and
 
 ## Features
 
-- Web-based admin panel for content management
+- Web-based dashboard for content management
 - Support for images, videos, and web URLs
 - Custom duration settings for each asset
 - Active/inactive toggle for assets
 - Drag-and-drop asset reordering
-- Date-based scheduling with time ranges
+- Download uploaded assets
+- Remote system reboot (localhost only)
 - Automatic display rotation
 - Kiosk mode with auto-start on boot
 - Lightweight and optimized for Raspberry Pi
@@ -33,10 +34,10 @@ curl -sSL https://raw.githubusercontent.com/Rupakpoddar/Wallify/main/install.sh 
 
 After installation, the server will start automatically.
 
-### Admin Panel
-Access the admin panel to manage content:
+### Dashboard
+Access the dashboard to manage content:
 ```
-http://[raspberry-pi-ip]:3000/admin
+http://[raspberry-pi-ip]:3000/dashboard
 ```
 
 ### Display
@@ -68,13 +69,15 @@ wallify/
 │   ├── package.json # Dependencies configuration
 │   └── uploads/     # Asset storage directory
 │       └── .gitkeep # Keeps empty directory in git
-├── client/          # Display client (HTML/JS)
+├── display/         # Display client
 │   ├── display.html
-│   └── display.js
-├── admin/           # Admin interface
+│   ├── display.js
+│   └── favicon.png  # Favicon for display
+├── dashboard/       # Dashboard interface
 │   ├── index.html
-│   ├── admin.js
-│   └── admin.css
+│   ├── dashboard.js
+│   ├── dashboard.css
+│   └── favicon.png  # Favicon for dashboard
 ├── install.sh       # Installation script
 └── README.md        # This file
 ```
@@ -94,9 +97,9 @@ limits: { fileSize: 100 * 1024 * 1024 } // Change this
 ```
 
 ### Display Refresh Interval
-Default is 10 seconds. To change, edit `client/display.js`:
+Default is 5 seconds. To change, edit `display/display.js`:
 ```javascript
-this.refreshInterval = 10000; // Change this (milliseconds)
+this.refreshInterval = 5000; // Change this (milliseconds)
 ```
 
 ## Managing the Service
@@ -124,7 +127,7 @@ sudo journalctl -u wallify -f
 2. Verify content is uploaded via admin panel
 3. Check browser console for errors (F12)
 
-### Cannot access admin panel
+### Cannot access dashboard
 1. Ensure you're using the correct IP address
 2. Check firewall settings
 3. Verify port 3000 is not blocked
@@ -133,6 +136,11 @@ sudo journalctl -u wallify -f
 1. Check available disk space: `df -h`
 2. Verify file permissions in uploads directory
 3. Ensure file type is supported (images: jpg, png, gif; videos: mp4, webm)
+
+### Reboot button not working
+1. Only available when accessing dashboard from localhost
+2. Check sudo permissions: `sudo -l | grep reboot`
+3. If needed, manually add: `echo "$USER ALL=(ALL) NOPASSWD: /sbin/reboot" | sudo tee /etc/sudoers.d/wallify-reboot`
 
 ## Uninstallation
 
@@ -151,6 +159,6 @@ rm -rf ~/wallify
 rm ~/.config/autostart/wallify-display.desktop
 ```
 
-## License
+## Contributing
 
-MIT License
+Contributions are welcome! Feel free to submit pull requests, report issues, or suggest new features. Every contribution, big or small, is valued and appreciated ❤️

@@ -4,7 +4,7 @@ class WallifyDisplay {
         this.statusEl = document.getElementById('status');
         this.playlist = [];
         this.currentIndex = 0;
-        this.refreshInterval = 10000; // Refresh playlist every 10 seconds
+        this.refreshInterval = 5000; // Refresh playlist every 5 seconds
         this.serverUrl = window.location.origin;
         this.retryCount = 0;
         this.maxRetries = 10;
@@ -20,7 +20,7 @@ class WallifyDisplay {
         await this.loadPlaylistWithRetry();
         
         // Set up periodic refresh with shorter interval for better responsiveness
-        setInterval(() => this.loadPlaylist(), 10000); // Check every 10 seconds
+        setInterval(() => this.loadPlaylist(), 5000); // Check every 5 seconds
         
         // Hide cursor after 3 seconds of inactivity
         let cursorTimer;
@@ -36,6 +36,12 @@ class WallifyDisplay {
         setTimeout(() => {
             document.body.style.cursor = 'none';
         }, 3000);
+        
+        // Listen for forced refresh events
+        window.addEventListener('playlist-updated', () => {
+            console.log('Received playlist update signal');
+            this.loadPlaylist();
+        });
     }
     
     async loadPlaylistWithRetry() {
@@ -60,13 +66,19 @@ class WallifyDisplay {
     
     async loadPlaylist() {
         try {
-            const response = await fetch(`${this.serverUrl}/api/current-playlist`);
+            // Add timestamp to prevent caching
+            const timestamp = Date.now();
+            const response = await fetch(`${this.serverUrl}/api/current-playlist?t=${timestamp}`);
             if (!response.ok) throw new Error('Failed to fetch playlist');
             
             const newPlaylist = await response.json();
             
-            // Only update if playlist has changed
-            if (JSON.stringify(newPlaylist.map(p => p.id)) !== JSON.stringify(this.playlist.map(p => p.id))) {
+            // Check if playlist has actually changed by comparing IDs and enabled status
+            const currentIds = this.playlist.map(p => `${p.id}-${p.enabled}`).join(',');
+            const newIds = newPlaylist.map(p => `${p.id}-${p.enabled}`).join(',');
+            
+            if (currentIds !== newIds || this.playlist.length !== newPlaylist.length) {
+                console.log('Playlist updated, refreshing display...');
                 this.playlist = newPlaylist;
                 this.currentIndex = 0;
                 this.renderPlaylist();

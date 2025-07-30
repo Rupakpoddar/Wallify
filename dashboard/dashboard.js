@@ -2,30 +2,28 @@ class WallifyAdmin {
     constructor() {
         this.serverUrl = window.location.origin;
         this.assets = [];
-        this.schedules = [];
         
         this.init();
     }
     
     init() {
         this.setupEventListeners();
+        this.checkIfLocal();
         this.loadAssets();
-        this.loadSchedules();
+    }
+    
+    checkIfLocal() {
+        // Show "Open Display" and "Reboot Pi" buttons only on localhost
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1';
+        
+        if (isLocalhost) {
+            document.getElementById('open-display-btn').style.display = 'inline-block';
+            document.getElementById('reboot-btn').style.display = 'inline-block';
+        }
     }
     
     setupEventListeners() {
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-                
-                e.target.classList.add('active');
-                const tabId = e.target.dataset.tab + '-tab';
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
-        
         // File upload
         document.getElementById('upload-btn').addEventListener('click', () => this.uploadFiles());
         document.getElementById('file-input').addEventListener('change', (e) => {
@@ -35,17 +33,16 @@ class WallifyAdmin {
         // URL add
         document.getElementById('add-url-btn').addEventListener('click', () => this.addURL());
         
-        // Schedule
-        document.getElementById('add-schedule-btn').addEventListener('click', () => this.addSchedule());
-        
         // Refresh
         document.getElementById('refresh-btn').addEventListener('click', () => {
             this.loadAssets();
-            this.loadSchedules();
             this.showToast('Refreshed', 'success');
-            // Trigger display refresh
-            this.triggerDisplayRefresh();
+            // Force display refresh by adding timestamp
+            this.forceDisplayRefresh();
         });
+        
+        // Reboot
+        document.getElementById('reboot-btn').addEventListener('click', () => this.rebootSystem());
     }
     
     async uploadFiles() {
@@ -85,7 +82,7 @@ class WallifyAdmin {
             fileInput.value = '';
             document.getElementById('upload-btn').textContent = 'Upload';
             this.loadAssets();
-            this.triggerDisplayRefresh();
+            this.forceDisplayRefresh();
         }
     }
     
@@ -112,7 +109,7 @@ class WallifyAdmin {
             document.getElementById('url-input').value = '';
             document.getElementById('url-name').value = '';
             this.loadAssets();
-            this.triggerDisplayRefresh();
+            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to add URL', 'error');
         }
@@ -123,7 +120,6 @@ class WallifyAdmin {
             const response = await fetch(`${this.serverUrl}/api/assets`);
             this.assets = await response.json();
             this.renderAssets();
-            this.updateAssetSelector();
         } catch (error) {
             this.showToast('Failed to load assets', 'error');
         }
@@ -155,6 +151,7 @@ class WallifyAdmin {
                     <button class="btn ${asset.enabled ? 'btn-secondary' : 'btn-primary'}" onclick="admin.toggleAsset('${asset.id}')">
                         ${asset.enabled ? 'Disable' : 'Enable'}
                     </button>
+                    ${asset.type !== 'url' ? `<button class="btn btn-secondary" onclick="admin.downloadAsset('${asset.id}')">Download</button>` : ''}
                     <button class="btn btn-danger" onclick="admin.deleteAsset('${asset.id}')">Delete</button>
                 </div>
             </div>
@@ -182,7 +179,7 @@ class WallifyAdmin {
             
             this.showToast('Asset status updated', 'success');
             this.loadAssets();
-            this.triggerDisplayRefresh();
+            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to update asset status', 'error');
         }
@@ -199,16 +196,31 @@ class WallifyAdmin {
             if (!response.ok) throw new Error('Reorder failed');
             
             this.loadAssets();
-            this.triggerDisplayRefresh();
+            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to reorder asset', 'error');
         }
     }
     
-    triggerDisplayRefresh() {
-        // Force display to refresh by making a request to the playlist endpoint
-        // This will trigger the display's next refresh cycle
-        fetch(`${this.serverUrl}/api/current-playlist`).catch(() => {});
+    async downloadAsset(id) {
+        const asset = this.assets.find(a => a.id === id);
+        if (!asset) return;
+        
+        window.open(`${this.serverUrl}/api/assets/${id}/download`, '_blank');
+    }
+    
+    forceDisplayRefresh() {
+        // Add timestamp to force cache invalidation
+        const timestamp = Date.now();
+        fetch(`${this.serverUrl}/api/current-playlist?t=${timestamp}`)
+            .then(() => {
+                // Also trigger SSE or WebSocket if implemented
+                if (window.EventSource) {
+                    const event = new CustomEvent('playlist-updated', { detail: { timestamp } });
+                    window.dispatchEvent(event);
+                }
+            })
+            .catch(() => {});
     }
     
     async deleteAsset(id) {
@@ -223,130 +235,42 @@ class WallifyAdmin {
             
             this.showToast('Asset deleted', 'success');
             this.loadAssets();
-            this.triggerDisplayRefresh();
+            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to delete asset', 'error');
         }
     }
     
-    updateAssetSelector() {
-        const selector = document.getElementById('schedule-asset');
-        const enabledAssets = this.assets.filter(asset => asset.enabled);
-        
-        if (enabledAssets.length === 0) {
-            selector.innerHTML = '<option value="">No active assets available</option>';
-            return;
-        }
-        
-        selector.innerHTML = enabledAssets.map(asset => 
-            `<option value="${asset.id}">${asset.name}</option>`
-        ).join('');
-    }
-    
-    async addSchedule() {
-        const assetId = document.getElementById('schedule-asset').value;
-        const startDateInput = document.getElementById('schedule-start-date').value;
-        const endDateInput = document.getElementById('schedule-end-date').value;
-        const startTime = document.getElementById('schedule-start-time').value;
-        const endTime = document.getElementById('schedule-end-time').value;
-        
-        if (!assetId || !startDateInput || !endDateInput) {
-            this.showToast('Please select an asset and date range', 'error');
-            return;
-        }
-        
-        // Use the date strings directly without timezone conversion
-        const startDate = startDateInput;
-        const endDate = endDateInput;
-        
-        // Validate date range
-        if (new Date(startDate) > new Date(endDate)) {
-            this.showToast('End date must be after start date', 'error');
-            return;
-        }
+    async rebootSystem() {
+        if (!confirm('Are you sure you want to reboot the Raspberry Pi?')) return;
         
         try {
-            const response = await fetch(`${this.serverUrl}/api/schedule`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assetId, startDate, endDate, startTime, endTime })
+            const response = await fetch(`${this.serverUrl}/api/system/reboot`, {
+                method: 'POST'
             });
             
-            if (!response.ok) throw new Error('Failed to create schedule');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Reboot failed');
+            }
             
-            this.showToast('Schedule created', 'success');
-            this.loadSchedules();
-            this.triggerDisplayRefresh();
+            const result = await response.json();
+            this.showToast(result.message, 'success');
             
-            // Reset form
-            document.getElementById('schedule-start-date').value = '';
-            document.getElementById('schedule-end-date').value = '';
-            document.getElementById('schedule-start-time').value = '00:00';
-            document.getElementById('schedule-end-time').value = '23:59';
+            // Show countdown
+            let countdown = 5;
+            const interval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    this.showToast(`Rebooting in ${countdown} seconds...`, 'info');
+                } else {
+                    clearInterval(interval);
+                    this.showToast('System is rebooting...', 'info');
+                }
+            }, 1000);
+            
         } catch (error) {
-            this.showToast('Failed to create schedule', 'error');
-        }
-    }
-    
-    async loadSchedules() {
-        try {
-            const response = await fetch(`${this.serverUrl}/api/schedule`);
-            this.schedules = await response.json();
-            this.renderSchedules();
-        } catch (error) {
-            this.showToast('Failed to load schedules', 'error');
-        }
-    }
-    
-    renderSchedules() {
-        const container = document.getElementById('schedule-container');
-        
-        if (this.schedules.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #7f8c8d;">No schedules created yet</p>';
-            return;
-        }
-        
-        container.innerHTML = this.schedules.map(schedule => {
-            const asset = this.assets.find(a => a.id === schedule.assetId);
-            
-            // Format dates properly
-            const formatDate = (dateStr) => {
-                const date = new Date(dateStr + 'T00:00:00');
-                return date.toLocaleDateString();
-            };
-            
-            return `
-                <div class="schedule-item">
-                    <div class="asset-info">
-                        <div class="asset-name">${asset ? asset.name : 'Unknown Asset'}</div>
-                        <div class="asset-meta">
-                            ${formatDate(schedule.startDate)} - ${formatDate(schedule.endDate)} | 
-                            ${schedule.startTime} - ${schedule.endTime}
-                        </div>
-                    </div>
-                    <div class="asset-actions">
-                        <button class="btn btn-danger" onclick="admin.deleteSchedule('${schedule.id}')">Delete</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    async deleteSchedule(id) {
-        if (!confirm('Are you sure you want to delete this schedule?')) return;
-        
-        try {
-            const response = await fetch(`${this.serverUrl}/api/schedule/${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) throw new Error('Delete failed');
-            
-            this.showToast('Schedule deleted', 'success');
-            this.loadSchedules();
-            this.triggerDisplayRefresh();
-        } catch (error) {
-            this.showToast('Failed to delete schedule', 'error');
+            this.showToast(error.message || 'Failed to reboot system', 'error');
         }
     }
     

@@ -12,13 +12,45 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
-app.use('/admin', express.static(path.join(__dirname, '../admin')));
+app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 
 // Serve display page
 app.get('/display', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/display.html'));
+  res.sendFile(path.join(__dirname, '../display/display.html'));
 });
-app.use('/display', express.static(path.join(__dirname, '../client')));
+app.use('/display', express.static(path.join(__dirname, '../display')));
+
+// Serve dashboard root
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dashboard/index.html'));
+});
+
+// Redirect root to dashboard
+app.get('/', (req, res) => {
+  res.redirect('/dashboard');
+});
+
+// Reboot endpoint (only works on Raspberry Pi)
+app.post('/api/system/reboot', async (req, res) => {
+  try {
+    // Check if request is from localhost
+    const ip = req.ip || req.connection.remoteAddress;
+    if (ip !== '::1' && ip !== '127.0.0.1' && ip !== '::ffff:127.0.0.1') {
+      return res.status(403).json({ error: 'Reboot only allowed from localhost' });
+    }
+    
+    res.json({ message: 'System rebooting in 5 seconds...' });
+    
+    // Give time for response to be sent
+    setTimeout(() => {
+      require('child_process').exec('sudo reboot', (error) => {
+        if (error) console.error('Reboot failed:', error);
+      });
+    }, 5000);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Storage configuration
 const storage = multer.diskStorage({
@@ -53,7 +85,7 @@ async function getDB() {
     const data = await fs.readFile(DB_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    return { assets: [], schedule: [], settings: { defaultDuration: 10 } };
+    return { assets: [], settings: { defaultDuration: 10 } };
   }
 }
 
@@ -70,6 +102,12 @@ async function initDB() {
 // Routes
 app.get('/api/assets', async (req, res) => {
   const db = await getDB();
+  // Set headers to prevent caching
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
   res.json(db.assets);
 });
 
@@ -186,38 +224,17 @@ app.post('/api/assets/reorder', async (req, res) => {
   }
 });
 
-app.get('/api/schedule', async (req, res) => {
-  const db = await getDB();
-  res.json(db.schedule);
-});
-
-app.post('/api/schedule', async (req, res) => {
+app.get('/api/assets/:id/download', async (req, res) => {
   try {
     const db = await getDB();
-    const scheduleItem = {
-      id: uuidv4(),
-      assetId: req.body.assetId,
-      startDate: req.body.startDate,
-      endDate: req.body.endDate,
-      startTime: req.body.startTime || '00:00',
-      endTime: req.body.endTime || '23:59',
-      enabled: true
-    };
+    const asset = db.assets.find(a => a.id === req.params.id);
     
-    db.schedule.push(scheduleItem);
-    await saveDB(db);
-    res.json(scheduleItem);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.delete('/api/schedule/:id', async (req, res) => {
-  try {
-    const db = await getDB();
-    db.schedule = db.schedule.filter(s => s.id !== req.params.id);
-    await saveDB(db);
-    res.json({ success: true });
+    if (!asset || !asset.filename) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+    
+    const filePath = path.join('./uploads', asset.filename);
+    res.download(filePath, asset.name);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -226,53 +243,18 @@ app.delete('/api/schedule/:id', async (req, res) => {
 app.get('/api/current-playlist', async (req, res) => {
   try {
     const db = await getDB();
-    const now = new Date();
-    const currentDate = now.toISOString().split('T')[0];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
     
-    // Get scheduled assets for current date and time
-    const scheduledAssets = db.schedule
-      .filter(s => {
-        if (!s.enabled) return false;
-        
-        // Check if current date is within range
-        if (s.startDate && s.endDate) {
-          const start = new Date(s.startDate + 'T00:00:00');
-          const end = new Date(s.endDate + 'T23:59:59');
-          const current = new Date();
-          
-          if (current < start || current > end) return false;
-        }
-        
-        // Check if current time is within range
-        if (s.startTime && s.endTime) {
-          const [startHour, startMin] = s.startTime.split(':').map(Number);
-          const [endHour, endMin] = s.endTime.split(':').map(Number);
-          const startMinutes = startHour * 60 + startMin;
-          const endMinutes = endHour * 60 + endMin;
-          
-          if (currentTime < startMinutes || currentTime > endMinutes) return false;
-        }
-        
-        return true;
-      })
-      .map(s => db.assets.find(a => a.id === s.assetId))
-      .filter(Boolean)
-      .filter(a => a.enabled); // Only show enabled assets
+    // Return all enabled assets sorted by order
+    const playlist = db.assets
+      .filter(a => a.enabled)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
     
-    // If we have scheduled assets, show only those
-    // Otherwise, show all enabled non-scheduled assets
-    let playlist = [];
-    
-    if (scheduledAssets.length > 0) {
-      playlist = scheduledAssets;
-    } else {
-      // Get all assets that are enabled and not part of any schedule
-      const scheduledAssetIds = db.schedule.map(s => s.assetId);
-      playlist = db.assets
-        .filter(a => a.enabled && !scheduledAssetIds.includes(a.id))
-        .sort((a, b) => (a.order || 0) - (b.order || 0));
-    }
+    // Set headers to prevent caching
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     
     res.json(playlist);
   } catch (error) {
