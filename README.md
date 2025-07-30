@@ -7,7 +7,9 @@ Open source digital signage system for Raspberry Pi. Display images, videos, and
 - Web-based admin panel for content management
 - Support for images, videos, and web URLs
 - Custom duration settings for each asset
-- Time-based scheduling with day selection
+- Active/inactive toggle for assets
+- Drag-and-drop asset reordering
+- Date-based scheduling with time ranges
 - Automatic display rotation
 - Kiosk mode with auto-start on boot
 - Lightweight and optimized for Raspberry Pi
@@ -63,7 +65,9 @@ chmod +x install.sh
 wallify/
 ├── server/          # Node.js backend server
 │   ├── index.js     # Main server file
-│   └── package.json # Dependencies configuration
+│   ├── package.json # Dependencies configuration
+│   └── uploads/     # Asset storage directory
+│       └── .gitkeep # Keeps empty directory in git
 ├── client/          # Display client (HTML/JS)
 │   ├── display.html
 │   └── display.js
@@ -90,9 +94,9 @@ limits: { fileSize: 100 * 1024 * 1024 } // Change this
 ```
 
 ### Display Refresh Interval
-Default is 60 seconds. To change, edit `client/display.js`:
+Default is 10 seconds. To change, edit `client/display.js`:
 ```javascript
-this.refreshInterval = 60000; // Change this (milliseconds)
+this.refreshInterval = 10000; // Change this (milliseconds)
 ```
 
 ## Managing the Service

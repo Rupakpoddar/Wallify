@@ -4,7 +4,7 @@ class WallifyDisplay {
         this.statusEl = document.getElementById('status');
         this.playlist = [];
         this.currentIndex = 0;
-        this.refreshInterval = 60000; // Refresh playlist every minute
+        this.refreshInterval = 10000; // Refresh playlist every 10 seconds
         this.serverUrl = window.location.origin;
         this.retryCount = 0;
         this.maxRetries = 10;
@@ -19,8 +19,8 @@ class WallifyDisplay {
         // Try to load playlist with retry logic
         await this.loadPlaylistWithRetry();
         
-        // Set up periodic refresh
-        setInterval(() => this.loadPlaylist(), this.refreshInterval);
+        // Set up periodic refresh with shorter interval for better responsiveness
+        setInterval(() => this.loadPlaylist(), 10000); // Check every 10 seconds
         
         // Hide cursor after 3 seconds of inactivity
         let cursorTimer;
@@ -61,16 +61,19 @@ class WallifyDisplay {
     async loadPlaylist() {
         try {
             const response = await fetch(`${this.serverUrl}/api/current-playlist`);
+            if (!response.ok) throw new Error('Failed to fetch playlist');
+            
             const newPlaylist = await response.json();
             
-            if (JSON.stringify(newPlaylist) !== JSON.stringify(this.playlist)) {
+            // Only update if playlist has changed
+            if (JSON.stringify(newPlaylist.map(p => p.id)) !== JSON.stringify(this.playlist.map(p => p.id))) {
                 this.playlist = newPlaylist;
                 this.currentIndex = 0;
                 this.renderPlaylist();
             }
         } catch (error) {
             console.error('Failed to load playlist:', error);
-            this.showStatus('Connection error', 3000);
+            throw error; // Re-throw for retry logic
         }
     }
     

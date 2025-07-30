@@ -82,6 +82,8 @@ app.post('/api/assets/upload', upload.single('file'), async (req, res) => {
       filename: req.file.filename,
       type: req.file.mimetype.startsWith('video') ? 'video' : 'image',
       duration: parseInt(req.body.duration) || 10,
+      enabled: true,
+      order: db.assets.length,
       created: new Date().toISOString()
     };
     
@@ -102,6 +104,8 @@ app.post('/api/assets/url', async (req, res) => {
       url: req.body.url,
       type: 'url',
       duration: parseInt(req.body.duration) || 30,
+      enabled: true,
+      order: db.assets.length,
       created: new Date().toISOString()
     };
     
@@ -124,11 +128,59 @@ app.delete('/api/assets/:id', async (req, res) => {
         await fs.unlink(path.join('./uploads', asset.filename)).catch(() => {});
       }
       db.assets.splice(assetIndex, 1);
+      // Reorder remaining assets
+      db.assets.forEach((a, i) => a.order = i);
       await saveDB(db);
       res.json({ success: true });
     } else {
       res.status(404).json({ error: 'Asset not found' });
     }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/assets/:id/toggle', async (req, res) => {
+  try {
+    const db = await getDB();
+    const asset = db.assets.find(a => a.id === req.params.id);
+    
+    if (asset) {
+      asset.enabled = !asset.enabled;
+      await saveDB(db);
+      res.json(asset);
+    } else {
+      res.status(404).json({ error: 'Asset not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/assets/reorder', async (req, res) => {
+  try {
+    const db = await getDB();
+    const { assetId, direction } = req.body;
+    const assetIndex = db.assets.findIndex(a => a.id === assetId);
+    
+    if (assetIndex === -1) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+    
+    const newIndex = direction === 'up' ? assetIndex - 1 : assetIndex + 1;
+    
+    if (newIndex < 0 || newIndex >= db.assets.length) {
+      return res.status(400).json({ error: 'Cannot move asset' });
+    }
+    
+    // Swap assets
+    [db.assets[assetIndex], db.assets[newIndex]] = [db.assets[newIndex], db.assets[assetIndex]];
+    
+    // Update order values
+    db.assets.forEach((a, i) => a.order = i);
+    
+    await saveDB(db);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -185,9 +237,9 @@ app.get('/api/current-playlist', async (req, res) => {
         
         // Check if current date is within range
         if (s.startDate && s.endDate) {
-          const start = new Date(s.startDate);
-          const end = new Date(s.endDate);
-          const current = new Date(currentDate);
+          const start = new Date(s.startDate + 'T00:00:00');
+          const end = new Date(s.endDate + 'T23:59:59');
+          const current = new Date();
           
           if (current < start || current > end) return false;
         }
@@ -205,10 +257,22 @@ app.get('/api/current-playlist', async (req, res) => {
         return true;
       })
       .map(s => db.assets.find(a => a.id === s.assetId))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(a => a.enabled); // Only show enabled assets
     
-    // If no scheduled assets, return all assets
-    const playlist = scheduledAssets.length > 0 ? scheduledAssets : db.assets;
+    // If we have scheduled assets, show only those
+    // Otherwise, show all enabled non-scheduled assets
+    let playlist = [];
+    
+    if (scheduledAssets.length > 0) {
+      playlist = scheduledAssets;
+    } else {
+      // Get all assets that are enabled and not part of any schedule
+      const scheduledAssetIds = db.schedule.map(s => s.assetId);
+      playlist = db.assets
+        .filter(a => a.enabled && !scheduledAssetIds.includes(a.id))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
     
     res.json(playlist);
   } catch (error) {

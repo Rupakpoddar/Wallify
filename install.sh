@@ -3,71 +3,45 @@
 set -e
 
 # Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[0;37m'
-BOLD='\033[1m'
+RED='\033[38;2;244;67;54m'
+GREEN='\033[38;2;76;175;80m'
+YELLOW='\033[38;2;255;193;7m'
 NC='\033[0m' # No Color
-
-# Icons
-CHECK="✓"
-CROSS="✗"
-ARROW="➜"
-INFO="ℹ"
 
 # Functions for formatted output
 print_header() {
     echo
-    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${NC}${BOLD}${WHITE}              WALLIFY INSTALLATION SCRIPT                  ${NC}${BLUE}║${NC}"
-    echo -e "${BLUE}║${NC}${WHITE}           Open Source Digital Signage System              ${NC}${BLUE}║${NC}"
-    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
+    echo "╔═══════════════════════════════════════════════════════════╗"
+    echo "║              WALLIFY INSTALLATION SCRIPT                  ║"
+    echo "║           Open Source Digital Signage System              ║"
+    echo "╚═══════════════════════════════════════════════════════════╝"
     echo
 }
 
 print_step() {
     echo
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BOLD}${ARROW} $1${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo "$1"
+    echo
 }
 
 print_success() {
-    echo -e "${GREEN}${CHECK} $1${NC}"
+    echo -e "${GREEN}✓ $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}${CROSS} $1${NC}"
+    echo -e "${RED}✗ $1${NC}"
 }
 
 print_info() {
-    echo -e "${YELLOW}${INFO} $1${NC}"
+    echo -e "${YELLOW}$1${NC}"
 }
 
 print_progress() {
-    echo -ne "${PURPLE}  $1...${NC}"
+    echo -ne "  $1..."
 }
 
 print_done() {
     echo -e " ${GREEN}done${NC}"
-}
-
-spinner() {
-    local pid=$1
-    local delay=0.1
-    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
-        local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
 }
 
 # Main installation
@@ -77,7 +51,7 @@ print_header
 print_step "System Check"
 if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
     print_info "This doesn't appear to be a Raspberry Pi"
-    echo -ne "${YELLOW}Continue anyway? (y/n) ${NC}"
+    echo -n "Continue anyway? (y/n) "
     read -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -274,41 +248,41 @@ sleep 2
 
 if systemctl is-active --quiet wallify; then
     print_success "Wallify server is running"
-    SERVER_STATUS="${GREEN}${CHECK} Running${NC}"
+    SERVER_STATUS="${GREEN}Running${NC}"
 else
     print_error "Wallify server failed to start"
-    SERVER_STATUS="${RED}${CROSS} Not running${NC}"
+    SERVER_STATUS="${RED}Not running${NC}"
 fi
 
 # Print summary
 echo
-echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║${NC}${BOLD}${WHITE}              INSTALLATION COMPLETE!                       ${NC}${GREEN}║${NC}"
-echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║              INSTALLATION COMPLETE!                       ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
 echo
-echo -e "${BOLD}Installation Summary:${NC}"
-echo -e "  ${CYAN}Location:${NC} $INSTALL_DIR"
-echo -e "  ${CYAN}Service:${NC} $SERVER_STATUS"
+echo "Installation Summary:"
+echo "  Location: $INSTALL_DIR"
+echo -e "  Service: $SERVER_STATUS"
 echo
-echo -e "${BOLD}Access URLs:${NC}"
-echo -e "  ${CYAN}Admin Panel:${NC}"
-echo -e "    ${WHITE}http://$IP_ADDR:3000/admin${NC}"
-echo -e "    ${WHITE}http://localhost:3000/admin${NC}"
+echo "Access URLs:"
+echo "  Admin Panel:"
+echo "    http://$IP_ADDR:3000/admin"
+echo "    http://localhost:3000/admin"
 echo
-echo -e "  ${CYAN}Display:${NC}"
-echo -e "    ${WHITE}http://$IP_ADDR:3000/display${NC}"
-echo -e "    ${WHITE}http://localhost:3000/display${NC}"
+echo "  Display:"
+echo "    http://$IP_ADDR:3000/display"
+echo "    http://localhost:3000/display"
 echo
-echo -e "${BOLD}Useful Commands:${NC}"
-echo -e "  ${YELLOW}sudo systemctl status wallify${NC}  - Check service status"
-echo -e "  ${YELLOW}sudo systemctl restart wallify${NC} - Restart service"
-echo -e "  ${YELLOW}sudo journalctl -u wallify -f${NC}  - View logs"
+echo "Useful Commands:"
+echo "  sudo systemctl status wallify  - Check service status"
+echo "  sudo systemctl restart wallify - Restart service"
+echo "  sudo journalctl -u wallify -f  - View logs"
 echo
-echo -e "${PURPLE}The display will start automatically on next boot${NC}"
+echo "The display will start automatically on next boot"
 echo
 
 if [[ "$SERVER_STATUS" == *"Not running"* ]]; then
-    echo -e "${RED}${BOLD}⚠ Warning:${NC} ${RED}Server failed to start. Check logs with:${NC}"
-    echo -e "  ${YELLOW}sudo journalctl -u wallify -n 50${NC}"
+    echo -e "${RED}Warning: Server failed to start. Check logs with:${NC}"
+    echo "  sudo journalctl -u wallify -n 50"
     echo
 fi
