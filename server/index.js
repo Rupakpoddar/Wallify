@@ -13,6 +13,11 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use('/admin', express.static(path.join(__dirname, '../admin')));
+
+// Serve display page
+app.get('/display', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/display.html'));
+});
 app.use('/display', express.static(path.join(__dirname, '../client')));
 
 // Storage configuration
@@ -140,9 +145,10 @@ app.post('/api/schedule', async (req, res) => {
     const scheduleItem = {
       id: uuidv4(),
       assetId: req.body.assetId,
-      startTime: req.body.startTime,
-      endTime: req.body.endTime,
-      days: req.body.days || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+      startDate: req.body.startDate,
+      endDate: req.body.endDate,
+      startTime: req.body.startTime || '00:00',
+      endTime: req.body.endTime || '23:59',
       enabled: true
     };
     
@@ -169,20 +175,34 @@ app.get('/api/current-playlist', async (req, res) => {
   try {
     const db = await getDB();
     const now = new Date();
-    const currentDay = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][now.getDay()];
+    const currentDate = now.toISOString().split('T')[0];
     const currentTime = now.getHours() * 60 + now.getMinutes();
     
-    // Get scheduled assets for current time
+    // Get scheduled assets for current date and time
     const scheduledAssets = db.schedule
       .filter(s => {
-        if (!s.enabled || !s.days.includes(currentDay)) return false;
+        if (!s.enabled) return false;
         
-        const [startHour, startMin] = s.startTime.split(':').map(Number);
-        const [endHour, endMin] = s.endTime.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
+        // Check if current date is within range
+        if (s.startDate && s.endDate) {
+          const start = new Date(s.startDate);
+          const end = new Date(s.endDate);
+          const current = new Date(currentDate);
+          
+          if (current < start || current > end) return false;
+        }
         
-        return currentTime >= startMinutes && currentTime <= endMinutes;
+        // Check if current time is within range
+        if (s.startTime && s.endTime) {
+          const [startHour, startMin] = s.startTime.split(':').map(Number);
+          const [endHour, endMin] = s.endTime.split(':').map(Number);
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+          
+          if (currentTime < startMinutes || currentTime > endMinutes) return false;
+        }
+        
+        return true;
       })
       .map(s => db.assets.find(a => a.id === s.assetId))
       .filter(Boolean);

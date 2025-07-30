@@ -181,13 +181,19 @@ class WallifyAdmin {
     
     async addSchedule() {
         const assetId = document.getElementById('schedule-asset').value;
-        const startTime = document.getElementById('schedule-start').value;
-        const endTime = document.getElementById('schedule-end').value;
-        const days = Array.from(document.querySelectorAll('.days-selector input:checked'))
-            .map(cb => cb.value);
+        const startDate = document.getElementById('schedule-start-date').value;
+        const endDate = document.getElementById('schedule-end-date').value;
+        const startTime = document.getElementById('schedule-start-time').value;
+        const endTime = document.getElementById('schedule-end-time').value;
         
-        if (!assetId || days.length === 0) {
-            this.showToast('Please select an asset and at least one day', 'error');
+        if (!assetId || !startDate || !endDate) {
+            this.showToast('Please select an asset and date range', 'error');
+            return;
+        }
+        
+        // Validate date range
+        if (new Date(startDate) > new Date(endDate)) {
+            this.showToast('End date must be after start date', 'error');
             return;
         }
         
@@ -195,13 +201,19 @@ class WallifyAdmin {
             const response = await fetch(`${this.serverUrl}/api/schedule`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assetId, startTime, endTime, days })
+                body: JSON.stringify({ assetId, startDate, endDate, startTime, endTime })
             });
             
             if (!response.ok) throw new Error('Failed to create schedule');
             
             this.showToast('Schedule created', 'success');
             this.loadSchedules();
+            
+            // Reset form
+            document.getElementById('schedule-start-date').value = '';
+            document.getElementById('schedule-end-date').value = '';
+            document.getElementById('schedule-start-time').value = '00:00';
+            document.getElementById('schedule-end-time').value = '23:59';
         } catch (error) {
             this.showToast('Failed to create schedule', 'error');
         }
@@ -227,13 +239,16 @@ class WallifyAdmin {
         
         container.innerHTML = this.schedules.map(schedule => {
             const asset = this.assets.find(a => a.id === schedule.assetId);
+            const startDate = new Date(schedule.startDate).toLocaleDateString();
+            const endDate = new Date(schedule.endDate).toLocaleDateString();
+            
             return `
                 <div class="schedule-item">
                     <div class="asset-info">
                         <div class="asset-name">${asset ? asset.name : 'Unknown Asset'}</div>
                         <div class="asset-meta">
-                            ${schedule.startTime} - ${schedule.endTime} | 
-                            ${schedule.days.join(', ').toUpperCase()}
+                            ${startDate} - ${endDate} | 
+                            ${schedule.startTime} - ${schedule.endTime}
                         </div>
                     </div>
                     <div class="asset-actions">

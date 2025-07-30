@@ -6,12 +6,20 @@ class WallifyDisplay {
         this.currentIndex = 0;
         this.refreshInterval = 60000; // Refresh playlist every minute
         this.serverUrl = window.location.origin;
+        this.retryCount = 0;
+        this.maxRetries = 10;
         
         this.init();
     }
     
     async init() {
-        await this.loadPlaylist();
+        // Show loading status
+        this.showStatus('Connecting to server...', 0);
+        
+        // Try to load playlist with retry logic
+        await this.loadPlaylistWithRetry();
+        
+        // Set up periodic refresh
         setInterval(() => this.loadPlaylist(), this.refreshInterval);
         
         // Hide cursor after 3 seconds of inactivity
@@ -23,6 +31,31 @@ class WallifyDisplay {
                 document.body.style.cursor = 'none';
             }, 3000);
         });
+        
+        // Initially hide cursor
+        setTimeout(() => {
+            document.body.style.cursor = 'none';
+        }, 3000);
+    }
+    
+    async loadPlaylistWithRetry() {
+        while (this.retryCount < this.maxRetries) {
+            try {
+                await this.loadPlaylist();
+                this.retryCount = 0;
+                this.hideStatus();
+                return;
+            } catch (error) {
+                this.retryCount++;
+                console.error(`Failed to load playlist (attempt ${this.retryCount}/${this.maxRetries}):`, error);
+                this.showStatus(`Retrying connection... (${this.retryCount}/${this.maxRetries})`, 0);
+                
+                // Wait before retrying (exponential backoff)
+                await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, this.retryCount - 1), 10000)));
+            }
+        }
+        
+        this.showStatus('Failed to connect to server. Please check server status.', 0);
     }
     
     async loadPlaylist() {
@@ -142,6 +175,10 @@ class WallifyDisplay {
                 this.statusEl.style.display = 'none';
             }, duration);
         }
+    }
+    
+    hideStatus() {
+        this.statusEl.style.display = 'none';
     }
 }
 

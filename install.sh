@@ -160,58 +160,16 @@ cp -r "$SOURCE_DIR/client" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed 
 cp -r "$SOURCE_DIR/admin" "$INSTALL_DIR/" 2>/dev/null || { print_error "Failed to copy admin files"; exit 1; }
 print_done
 
-# Verify critical files
-if [ ! -f "$INSTALL_DIR/server/package.json" ]; then
-    print_error "package.json was not copied correctly"
-    print_info "Source directory contents:"
-    ls -la "$SOURCE_DIR/server/"
-    print_info "Destination directory contents:"
-    ls -la "$INSTALL_DIR/server/"
-    exit 1
-fi
-
 # Create uploads directory
 mkdir -p "$INSTALL_DIR/server/uploads"
 touch "$INSTALL_DIR/server/uploads/.gitkeep"
 
 # Install Node.js dependencies
 print_step "Installing Dependencies"
-
-# Test npm is working
-print_progress "Verifying npm installation"
-if ! npm --version &>/dev/null; then
-    print_error "npm is not working correctly"
-    print_info "Trying to reinstall Node.js..."
-    sudo apt-get install -y --reinstall nodejs npm
-    exit 1
-fi
-print_done
-
 cd "$INSTALL_DIR/server"
 
-# Check if package.json exists
-if [ ! -f "package.json" ]; then
-    print_error "package.json not found in $INSTALL_DIR/server"
-    print_info "Directory contents:"
-    ls -la
-    exit 1
-fi
-
 print_progress "Installing npm packages"
-# Run npm install with better error handling
-if npm install --production > /tmp/npm-install.log 2>&1; then
-    print_done
-    print_success "Installed packages: $(npm list --depth=0 2>/dev/null | grep -c '^├')"
-else
-    print_error "Failed to install npm packages"
-    echo
-    print_info "Error details:"
-    cat /tmp/npm-install.log
-    echo
-    print_info "Trying verbose installation..."
-    npm install --production --verbose
-    exit 1
-fi
+npm install --omit=dev --silent 2>/dev/null && print_done || { print_error "Failed to install npm packages"; exit 1; }
 
 # Create systemd service
 print_step "Setting Up System Service"
@@ -249,11 +207,37 @@ if [ -d "$HOME/.config" ]; then
     print_progress "Setting up kiosk mode"
     mkdir -p "$HOME/.config/autostart"
     
+    # Create a startup script with delay
+    cat > "$INSTALL_DIR/start-display.sh" << 'EOF'
+#!/bin/bash
+# Wait for network and server to be ready
+sleep 30
+
+# Check if server is running
+for i in {1..30}; do
+    if curl -s http://localhost:3000/api/assets >/dev/null 2>&1; then
+        break
+    fi
+    sleep 2
+done
+
+# Start Chromium in kiosk mode
+chromium-browser \
+    --kiosk \
+    --noerrdialogs \
+    --disable-infobars \
+    --disable-session-crashed-bubble \
+    --disable-restore-session-state \
+    --check-for-update-interval=31536000 \
+    http://localhost:3000/display
+EOF
+    chmod +x "$INSTALL_DIR/start-display.sh"
+    
     tee "$HOME/.config/autostart/wallify-display.desktop" > /dev/null <<EOF
 [Desktop Entry]
 Type=Application
 Name=Wallify Display
-Exec=chromium-browser --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-restore-session-state http://localhost:3000/display
+Exec=$INSTALL_DIR/start-display.sh
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
