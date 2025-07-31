@@ -263,7 +263,7 @@ fi
 # Print summary
 echo
 echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║              INSTALLATION COMPLETE!                       ║"
+echo "║                   INSTALLATION COMPLETE!                  ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo
 echo "Installation Summary:"
@@ -276,8 +276,8 @@ echo "    http://$IP_ADDR:3000/dashboard"
 echo "    http://localhost:3000/dashboard"
 echo
 echo "  Display:"
-echo "    http://$IP_ADDR:3000/display/"
-echo "    http://localhost:3000/display/"
+echo "    http://$IP_ADDR:3000/display"
+echo "    http://localhost:3000/display"
 echo
 echo "Useful Commands:"
 echo "  sudo systemctl status wallify  - Check service status"
