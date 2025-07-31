@@ -37,13 +37,13 @@ After installation, the server will start automatically.
 ### Dashboard
 Access the dashboard to manage content:
 ```
-http://[raspberry-pi-ip]:3000/dashboard
+http://[raspberry-pi-ip]:3000/dashboard/
 ```
 
 ### Display
 The display will start automatically on boot. To manually view:
 ```
-http://[raspberry-pi-ip]:3000/display
+http://[raspberry-pi-ip]:3000/display/
 ```
 
 ## Manual Installation

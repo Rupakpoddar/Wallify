@@ -14,9 +14,9 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 
-// Serve display page
+// Redirect /display to /display/ for consistency
 app.get('/display', (req, res) => {
-  res.sendFile(path.join(__dirname, '../display/display.html'));
+  res.redirect('/display/');
 });
 
 // Serve display page with trailing slash

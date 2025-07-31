@@ -272,12 +272,12 @@ echo -e "  Service: $SERVER_STATUS"
 echo
 echo "Access URLs:"
 echo "  Dashboard:"
-echo "    http://$IP_ADDR:3000/dashboard"
-echo "    http://localhost:3000/dashboard"
+echo "    http://$IP_ADDR:3000/dashboard/"
+echo "    http://localhost:3000/dashboard/"
 echo
 echo "  Display:"
-echo "    http://$IP_ADDR:3000/display"
-echo "    http://localhost:3000/display"
+echo "    http://$IP_ADDR:3000/display/"
+echo "    http://localhost:3000/display/"
 echo
 echo "Useful Commands:"
 echo "  sudo systemctl status wallify  - Check service status"
