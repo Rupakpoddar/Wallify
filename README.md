@@ -77,8 +77,8 @@ wallify/
 │   ├── index.html
 │   ├── dashboard.js
 │   ├── dashboard.css
+│   └── favicon.png  # Favicon for dashboard
 ├── install.sh       # Installation script
-├── favicon.png      # Favicon for webpages
 └── README.md        # This file
 ```
 
