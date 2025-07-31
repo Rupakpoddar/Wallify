@@ -14,18 +14,18 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 
-// Serve static files for display
-app.use('/display', express.static(path.join(__dirname, '../display')));
-
-// Redirect /display to /display/ to ensure consistent behavior
+// Serve display page
 app.get('/display', (req, res) => {
-  res.redirect('/display/');
+  res.sendFile(path.join(__dirname, '../display/display.html'));
 });
 
-// Serve display page
+// Serve display page with trailing slash
 app.get('/display/', (req, res) => {
   res.sendFile(path.join(__dirname, '../display/display.html'));
 });
+
+// Serve static files for display (CSS, JS, images)
+app.use('/display', express.static(path.join(__dirname, '../display')));
 
 // Serve dashboard root
 app.get('/dashboard', (req, res) => {
