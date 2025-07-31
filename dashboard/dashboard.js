@@ -13,16 +13,21 @@ class WallifyAdmin {
     }
     
     checkIfLocal() {
-        // Show "Open Display" and "Reboot" buttons on localhost and local network
+        // Show "Open Display" button only on localhost (Raspberry Pi browser)
+        // Show "Reboot" button on localhost and local network (remote access)
         const hostname = window.location.hostname;
-        const isLocal = hostname === 'localhost' || 
-                       hostname === '127.0.0.1' ||
-                       hostname.startsWith('192.168.') ||
-                       hostname.startsWith('10.') ||
-                       hostname.startsWith('172.');
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+        const isLocalNetwork = hostname.startsWith('192.168.') ||
+                              hostname.startsWith('10.') ||
+                              hostname.startsWith('172.');
         
-        if (isLocal) {
+        // Open Display only makes sense on the Pi itself
+        if (isLocalhost) {
             document.getElementById('open-display-btn').style.display = 'inline-block';
+        }
+        
+        // Reboot is useful from any local network device
+        if (isLocalhost || isLocalNetwork) {
             document.getElementById('reboot-btn').style.display = 'inline-block';
         }
     }

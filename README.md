@@ -10,7 +10,7 @@ Open source digital signage system for Raspberry Pi. Display images, videos, and
 - Active/inactive toggle for assets
 - Drag-and-drop asset reordering
 - Download uploaded assets
-- Remote system reboot (localhost only)
+- Remote system reboot
 - Automatic display rotation
 - Kiosk mode with auto-start on boot
 - Lightweight and optimized for Raspberry Pi
@@ -71,8 +71,7 @@ wallify/
 │       └── .gitkeep # Keeps empty directory in git
 ├── display/         # Display client
 │   ├── display.html
-│   ├── display.js
-│   └── favicon.png  # Favicon for display
+│   └── display.js
 ├── dashboard/       # Dashboard interface
 │   ├── index.html
 │   ├── dashboard.js

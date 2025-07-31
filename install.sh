@@ -263,7 +263,7 @@ fi
 # Print summary
 echo
 echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║              INSTALLATION COMPLETE!                       ║"
+echo "║                   INSTALLATION COMPLETE!                  ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo
 echo "Installation Summary:"
