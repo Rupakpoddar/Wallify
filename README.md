@@ -43,7 +43,7 @@ http://[raspberry-pi-ip]:3000/dashboard
 ### Display
 The display will start automatically on boot. To manually view:
 ```
-http://[raspberry-pi-ip]:3000/display
+http://[raspberry-pi-ip]:3000/display/
 ```
 
 ## Manual Installation

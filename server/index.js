@@ -14,11 +14,18 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 
-// Serve display page
+// Serve static files for display
+app.use('/display', express.static(path.join(__dirname, '../display')));
+
+// Redirect /display to /display/ to ensure consistent behavior
 app.get('/display', (req, res) => {
+  res.redirect('/display/');
+});
+
+// Serve display page
+app.get('/display/', (req, res) => {
   res.sendFile(path.join(__dirname, '../display/display.html'));
 });
-app.use('/display', express.static(path.join(__dirname, '../display')));
 
 // Serve dashboard root
 app.get('/dashboard', (req, res) => {
