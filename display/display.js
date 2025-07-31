@@ -4,10 +4,15 @@ class WallifyDisplay {
         this.statusEl = document.getElementById('status');
         this.playlist = [];
         this.currentIndex = 0;
-        this.refreshInterval = 5000; // Refresh playlist every 5 seconds
+        this.versionCheckInterval = 3000; // Check version every 3 seconds
         this.serverUrl = window.location.origin;
         this.retryCount = 0;
         this.maxRetries = 10;
+        this.currentVersion = null;
+        
+        // Version-based refresh: The display checks for version changes every 3 seconds
+        // When assets are added/removed/modified, the server updates the version
+        // If version changes, the display does a full page reload for clean state
         
         this.init();
     }
@@ -19,8 +24,8 @@ class WallifyDisplay {
         // Try to load playlist with retry logic
         await this.loadPlaylistWithRetry();
         
-        // Set up periodic refresh with shorter interval for better responsiveness
-        setInterval(() => this.loadPlaylist(), 5000); // Check every 5 seconds
+        // Start version checking for updates
+        setInterval(() => this.checkForUpdates(), this.versionCheckInterval);
         
         // Hide cursor after 3 seconds of inactivity
         let cursorTimer;
@@ -36,12 +41,26 @@ class WallifyDisplay {
         setTimeout(() => {
             document.body.style.cursor = 'none';
         }, 3000);
-        
-        // Listen for forced refresh events
-        window.addEventListener('playlist-updated', () => {
-            console.log('Received playlist update signal');
-            this.loadPlaylist();
-        });
+    }
+    
+    async checkForUpdates() {
+        try {
+            const response = await fetch(`${this.serverUrl}/api/version?t=${Date.now()}`);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            
+            if (this.currentVersion !== null && data.version !== this.currentVersion) {
+                console.log('Playlist version changed, reloading page...');
+                // Force a complete page reload to ensure clean state
+                // This prevents issues with frozen videos and ensures all assets load fresh
+                window.location.reload(true);
+            }
+            
+            this.currentVersion = data.version;
+        } catch (error) {
+            console.error('Version check failed:', error);
+        }
     }
     
     async loadPlaylistWithRetry() {
@@ -71,16 +90,16 @@ class WallifyDisplay {
             const response = await fetch(`${this.serverUrl}/api/current-playlist?t=${timestamp}`);
             if (!response.ok) throw new Error('Failed to fetch playlist');
             
-            const newPlaylist = await response.json();
+            const data = await response.json();
             
-            // Check if playlist has actually changed by comparing IDs and enabled status
-            const currentIds = this.playlist.map(p => `${p.id}-${p.enabled}`).join(',');
-            const newIds = newPlaylist.map(p => `${p.id}-${p.enabled}`).join(',');
+            // Update version
+            this.currentVersion = data.version;
             
-            if (currentIds !== newIds || this.playlist.length !== newPlaylist.length) {
-                console.log('Playlist updated, refreshing display...');
-                this.playlist = newPlaylist;
-                this.currentIndex = 0;
+            // Update playlist
+            this.playlist = data.playlist || [];
+            
+            // Only re-render if we're just starting (no current display)
+            if (this.currentIndex === 0 && this.container.querySelectorAll('.asset-item').length === 0) {
                 this.renderPlaylist();
             }
         } catch (error) {
@@ -96,6 +115,18 @@ class WallifyDisplay {
         }
         
         document.getElementById('no-content').style.display = 'none';
+        
+        // Clean up any existing assets before re-rendering
+        const existingAssets = this.container.querySelectorAll('.asset-item');
+        existingAssets.forEach(asset => {
+            const video = asset.querySelector('video');
+            if (video) {
+                video.pause();
+                video.src = '';
+                video.load();
+            }
+        });
+        
         this.container.innerHTML = '';
         
         this.playlist.forEach((asset, index) => {

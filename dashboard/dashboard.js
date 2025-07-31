@@ -13,11 +13,15 @@ class WallifyAdmin {
     }
     
     checkIfLocal() {
-        // Show "Open Display" and "Reboot Pi" buttons only on localhost
-        const isLocalhost = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1';
+        // Show "Open Display" and "Reboot" buttons on localhost and local network
+        const hostname = window.location.hostname;
+        const isLocal = hostname === 'localhost' || 
+                       hostname === '127.0.0.1' ||
+                       hostname.startsWith('192.168.') ||
+                       hostname.startsWith('10.') ||
+                       hostname.startsWith('172.');
         
-        if (isLocalhost) {
+        if (isLocal) {
             document.getElementById('open-display-btn').style.display = 'inline-block';
             document.getElementById('reboot-btn').style.display = 'inline-block';
         }
@@ -36,9 +40,7 @@ class WallifyAdmin {
         // Refresh
         document.getElementById('refresh-btn').addEventListener('click', () => {
             this.loadAssets();
-            this.showToast('Refreshed', 'success');
-            // Force display refresh by adding timestamp
-            this.forceDisplayRefresh();
+            this.showToast('Dashboard refreshed', 'success');
         });
         
         // Reboot
@@ -82,7 +84,6 @@ class WallifyAdmin {
             fileInput.value = '';
             document.getElementById('upload-btn').textContent = 'Upload';
             this.loadAssets();
-            this.forceDisplayRefresh();
         }
     }
     
@@ -109,7 +110,6 @@ class WallifyAdmin {
             document.getElementById('url-input').value = '';
             document.getElementById('url-name').value = '';
             this.loadAssets();
-            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to add URL', 'error');
         }
@@ -179,7 +179,6 @@ class WallifyAdmin {
             
             this.showToast('Asset status updated', 'success');
             this.loadAssets();
-            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to update asset status', 'error');
         }
@@ -196,7 +195,6 @@ class WallifyAdmin {
             if (!response.ok) throw new Error('Reorder failed');
             
             this.loadAssets();
-            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to reorder asset', 'error');
         }
@@ -207,20 +205,6 @@ class WallifyAdmin {
         if (!asset) return;
         
         window.open(`${this.serverUrl}/api/assets/${id}/download`, '_blank');
-    }
-    
-    forceDisplayRefresh() {
-        // Add timestamp to force cache invalidation
-        const timestamp = Date.now();
-        fetch(`${this.serverUrl}/api/current-playlist?t=${timestamp}`)
-            .then(() => {
-                // Also trigger SSE or WebSocket if implemented
-                if (window.EventSource) {
-                    const event = new CustomEvent('playlist-updated', { detail: { timestamp } });
-                    window.dispatchEvent(event);
-                }
-            })
-            .catch(() => {});
     }
     
     async deleteAsset(id) {
@@ -235,14 +219,13 @@ class WallifyAdmin {
             
             this.showToast('Asset deleted', 'success');
             this.loadAssets();
-            this.forceDisplayRefresh();
         } catch (error) {
             this.showToast('Failed to delete asset', 'error');
         }
     }
     
     async rebootSystem() {
-        if (!confirm('Are you sure you want to reboot the Raspberry Pi?')) return;
+        if (!confirm('Are you sure you want to reboot the Raspberry Pi?\n\nThe system will restart and be unavailable for about a minute.')) return;
         
         try {
             const response = await fetch(`${this.serverUrl}/api/system/reboot`, {

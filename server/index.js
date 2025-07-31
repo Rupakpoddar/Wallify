@@ -30,13 +30,21 @@ app.get('/', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// Reboot endpoint (only works on Raspberry Pi)
+// Reboot endpoint (only works on local network)
 app.post('/api/system/reboot', async (req, res) => {
   try {
-    // Check if request is from localhost
-    const ip = req.ip || req.connection.remoteAddress;
-    if (ip !== '::1' && ip !== '127.0.0.1' && ip !== '::ffff:127.0.0.1') {
-      return res.status(403).json({ error: 'Reboot only allowed from localhost' });
+    // Check if request is from local network
+    const ip = req.ip || req.connection.remoteAddress || '';
+    const cleanIp = ip.replace('::ffff:', '');
+    
+    const isLocal = cleanIp === '::1' || 
+                   cleanIp === '127.0.0.1' || 
+                   cleanIp.startsWith('192.168.') ||
+                   cleanIp.startsWith('10.') ||
+                   cleanIp.startsWith('172.');
+    
+    if (!isLocal) {
+      return res.status(403).json({ error: 'Reboot only allowed from local network' });
     }
     
     res.json({ message: 'System rebooting in 5 seconds...' });
@@ -85,11 +93,13 @@ async function getDB() {
     const data = await fs.readFile(DB_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    return { assets: [], settings: { defaultDuration: 10 } };
+    return { assets: [], settings: { defaultDuration: 10 }, version: Date.now() };
   }
 }
 
 async function saveDB(data) {
+  // Update version timestamp whenever database changes
+  data.version = Date.now();
   await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
 }
 
@@ -256,7 +266,26 @@ app.get('/api/current-playlist', async (req, res) => {
       'Expires': '0'
     });
     
-    res.json(playlist);
+    // Include version for change detection
+    res.json({
+      version: db.version || Date.now(),
+      playlist: playlist
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Version check endpoint
+app.get('/api/version', async (req, res) => {
+  try {
+    const db = await getDB();
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    res.json({ version: db.version || Date.now() });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -97,10 +97,7 @@ limits: { fileSize: 100 * 1024 * 1024 } // Change this
 ```
 
 ### Display Refresh Interval
-Default is 5 seconds. To change, edit `display/display.js`:
-```javascript
-this.refreshInterval = 5000; // Change this (milliseconds)
-```
+The display automatically checks for updates every 3 seconds and reloads when content changes.
 
 ## Managing the Service
 
@@ -129,8 +126,10 @@ sudo journalctl -u wallify -f
 
 ### Cannot access dashboard
 1. Ensure you're using the correct IP address
-2. Check firewall settings
-3. Verify port 3000 is not blocked
+2. Make sure you're connected to the same WiFi network as the Raspberry Pi
+3. Verify the Raspberry Pi's IP is reachable: `ping [raspberry-pi-ip]`
+4. Check firewall settings
+5. Verify port 3000 is not blocked
 
 ### Files not uploading
 1. Check available disk space: `df -h`
@@ -138,7 +137,7 @@ sudo journalctl -u wallify -f
 3. Ensure file type is supported (images: jpg, png, gif; videos: mp4, webm)
 
 ### Reboot button not working
-1. Only available when accessing dashboard from localhost
+1. Available on localhost and local network IPs
 2. Check sudo permissions: `sudo -l | grep reboot`
 3. If needed, manually add: `echo "$USER ALL=(ALL) NOPASSWD: /sbin/reboot" | sudo tee /etc/sudoers.d/wallify-reboot`
 
