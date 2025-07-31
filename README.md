@@ -71,7 +71,8 @@ wallify/
 │       └── .gitkeep # Keeps empty directory in git
 ├── display/         # Display client
 │   ├── display.html
-│   └── display.js
+│   ├── display.js
+│   └── favicon.png  # Favicon for display
 ├── dashboard/       # Dashboard interface
 │   ├── index.html
 │   ├── dashboard.js
