@@ -24,8 +24,14 @@ app.get('/display/', (req, res) => {
   res.sendFile(path.join(__dirname, '../display/display.html'));
 });
 
-// Serve static files for display (CSS, JS, images)
-app.use('/display', express.static(path.join(__dirname, '../display')));
+// Serve static files for display (CSS, JS, images) - specific files only
+app.get('/display/display.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '../display/display.js'));
+});
+
+app.get('/display/favicon.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '../display/favicon.png'));
+});
 
 // Serve dashboard root
 app.get('/dashboard', (req, res) => {
