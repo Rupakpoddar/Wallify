@@ -14,23 +14,16 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 
-// Redirect /display to /display/ for consistency
-app.get('/display', (req, res) => {
-  res.redirect('/display/');
-});
+// Serve static files for display directory
+app.use('/display', express.static(path.join(__dirname, '../display')));
 
-// Serve display page with trailing slash
-app.get('/display/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../display/display.html'));
-});
-
-// Serve static files for display (CSS, JS, images) - specific files only
-app.get('/display/display.js', (req, res) => {
-  res.sendFile(path.join(__dirname, '../display/display.js'));
-});
-
-app.get('/display/favicon.png', (req, res) => {
-  res.sendFile(path.join(__dirname, '../display/favicon.png'));
+// Redirect /display to /display/ only if it's not a file request
+app.get('/display', (req, res, next) => {
+  // If the request doesn't have a file extension, redirect to /display/
+  if (!path.extname(req.path)) {
+    return res.redirect(301, '/display/');
+  }
+  next();
 });
 
 // Serve dashboard root
