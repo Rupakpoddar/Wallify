@@ -14,6 +14,9 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 
+// Serve static files for display
+app.use('/display', express.static(path.join(__dirname, '../display')));
+
 // Serve display page
 app.get('/display', (req, res) => {
   res.sendFile(path.join(__dirname, '../display/display.html'));
