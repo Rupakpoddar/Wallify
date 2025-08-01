@@ -209,7 +209,7 @@ chromium-browser \
     --disable-session-crashed-bubble \
     --disable-restore-session-state \
     --check-for-update-interval=31536000 \
-    http://localhost:3000/display/
+    http://localhost:3000/display
 EOF
     chmod +x "$INSTALL_DIR/start-display.sh"
     
