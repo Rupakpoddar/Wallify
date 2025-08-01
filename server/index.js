@@ -17,13 +17,9 @@ app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
 // Serve static files for display directory
 app.use('/display', express.static(path.join(__dirname, '../display')));
 
-// Redirect /display to /display/ only if it's not a file request
-app.get('/display', (req, res, next) => {
-  // If the request doesn't have a file extension, redirect to /display/
-  if (!path.extname(req.path)) {
-    return res.redirect(301, '/display/');
-  }
-  next();
+// Redirect /display to /display/ (exact match only)
+app.get('/display', (req, res) => {
+  res.redirect(301, '/display/');
 });
 
 // Serve dashboard root
